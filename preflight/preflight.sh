@@ -3,8 +3,9 @@ set -euo pipefail
 
 ######################### GUARDS ##########################
 
-: "${MODULES_DIR:?MODULES_DIR not set (check PATHS section in run_pipeline.sh)}"
 : "${PREFLIGHT_DIR:?PREFLIGHT_DIR not set (check PATHS section in run_pipeline.sh)}"
+: "${PREFLIGHT_ARRAY:?PREFLIGHT_ARRAY not set (check arrays.sh)}"
+: "${UTILS_DIR:?UTILS_DIR not set (check PATHS section in run_pipeline.sh)}"
 
 ######################### SETUP ##########################
 
@@ -18,7 +19,6 @@ source "${UTILS_DIR}/arrays.sh"
 
 ######################### MAIN ############################
 
-echo
 echo "  RUNNING ${SCRIPT_NAME} ..."
 
 # Iterate through preflight checks
