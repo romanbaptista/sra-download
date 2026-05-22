@@ -42,8 +42,8 @@ Current preflight order:
 
 ```text
 preflight_variables.sh
-preflight_scripts.sh
 preflight_commands.sh
+preflight_scripts.sh
 preflight_edirect.sh
 preflight_sratoolkit.sh
 ```

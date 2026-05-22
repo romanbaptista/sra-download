@@ -9,8 +9,8 @@
 # Define preflight array (all preflight scripts, order is significant)
 PREFLIGHT_ARRAY=(
     "preflight_variables.sh"
-    "preflight_scripts.sh"
     "preflight_commands.sh"
+    "preflight_scripts.sh"
     "preflight_edirect.sh"
     "preflight_sratoolkit.sh"
 )
