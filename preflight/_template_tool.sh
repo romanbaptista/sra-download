@@ -1,9 +1,10 @@
 #!/bin/bash
+set -euo pipefail
 
 ######################### GUARDS #########################
 
 GUARD_ARRAY=(
-    ARRAY_DIR
+    # Guard variables go here
 )
 
 for var in "${GUARD_ARRAY[@]}"; do
@@ -14,26 +15,26 @@ done
 
 # Define script name
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}" .sh)"
+# Define toolname
+TOOLNAME=""
 
 ######################### SOURCE #########################
 
-# Source array
-source "${ARRAY_DIR}/array_variables.sh"
+source "${UTILS_DIR}/utils_${TOOLNAME}.sh"
+source "${FUNCTIONS_DIR}/functions_${TOOLNAME}.sh"
 
 ######################### CHECKS #########################
 
-array_check_nonempty VARIABLE_ARRAY || fail_message "VARIABLE_ARRAY is empty or not defined"
+# Validate any variables used downstream in this script, sourced from any of the scripts in the SOURCE section
 
 ######################### MAIN ###########################
 
 echo
-echo "RUNNING ${SCRIPT_NAME} ..."
-echo "  Checking for core user-defined variables..."
+echo "  RUNNING ${SCRIPT_NAME} ..."
+echo "  Doing something..."
 
-# Iterate over variables
-for var in "${VARIABLE_ARRAY[@]}"; do
-    variable_check_nonempty "${var}" || fail_message "Variable is empty or not defined: ${var}"
-done
+...
 
-echo "  User-defined variables confirmed"
-echo "${SCRIPT_NAME} COMPLETE"
+echo "  Something done"
+echo "  ${SCRIPT_NAME} COMPLETE"
+

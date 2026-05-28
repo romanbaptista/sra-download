@@ -1,136 +1,135 @@
 # `preflight`
 
-This directory contains the preflight validation layer for the `sra-download` pipeline.
+# Overview
+The `preflight/` directory implements the validation and environment construction layer of the pipeline.
 
-Preflight scripts are responsible for all validation and environment checks required to safely execute the pipeline on an HPC login node inside a persistent tmux session.
+This layer is responsible for ensuring that all requirements are met before any execution begins.
 
-No pipeline modules are executed unless all preflight checks succeed.
+It performs:
+- validation of user configuration
+- validation of system environment
+- validation of pipeline structure
+- installation and verification of required tools
+- construction of runtime directories
+- writing reproducible environment files
 
-Preflight scripts are sourced and executed by `run_pipeline.sh` on the login node before any network access or data download occurs.
+The preflight phase enforces a strict fail-fast model, guaranteeing that downstream execution begins only in a fully validated and deterministic state.
 
-# Design Contract
-All preflight scripts adhere to the following principles:
-- Fail‑fast validation before any pipeline execution
-- No side effects beyond controlled, deterministic tool installation
-- Clear and actionable error messages
-- Deterministic checks with no reliance on execution order beyond orchestration
-- Validation only — no pipeline execution logic
-- Centralized enforcement of pipeline invariants
+# Design Principles
+- Fail-fast — any error immediately terminates the pipeline
+- Validation-only responsibility — no execution logic
+- Deterministic ordering — all steps run in a strictly defined sequence
+- Explicit contracts — all checks are driven by arrays
+- No hidden state — all required variables and tools are validated
+- Reproducibility — all tool environments are captured via `.env` files
 
-Once preflight validation completes successfully, downstream scripts may assume:
-- All required configuration variables, tools, commands, and directories are valid and usable.
+# Role in the Pipeline
+The preflight layer is executed immediately after the entrypoint script and before any pipeline modules.
 
-# Responsibilities of Preflight
-The preflight layer ensures that:
-- User configuration is complete and non‑empty
-- Pipeline module scripts exist, are non‑empty, and executable
-- Required framework‑level commands are available on the system
-- Required toolchains (EDirect and SRA Toolkit) are installed and usable
-- Tool installations are reproducible and environment files are written
+It ensures:
+- all required variables are defined
+- all required binaries are available
+- all scripts are present and executable
+- all tools are correctly installed and usable
+- all required directories exist
 
-This avoids late‑stage download failures and prevents partially‑executed pipelines caused by missing dependencies or misconfiguration.
+Only once all checks pass does execution proceed to the pipeline stage.
 
-# Preflight Script Overview
-The set and execution order of all preflight scripts is centrally defined in:
+# Execution Flow
+Preflight is orchestrated by `preflight.sh`
+
+This script executes a sequence of validation scripts defined in `arrays/array_preflight.sh`.
+
+Each script is sourced in order, ensuring that:
+- earlier stages construct state
+- later stages validate or extend that state
+
+# Preflight Stages
+The pipeline implements the following validation stages:
+
+### Paths
+- Defines and creates directory structure
+- Extends `DIR_ARRAY` with pipeline-specific paths
+
+### Variables
+- Validates required user configuration (e.g. `BIOPROJECT`)
+
+### Binaries
+- Verifies required system-level CLI tools
+
+### Pipeline
+- Confirms pipeline scripts exist and are executable
+
+### Tools
+- Installs and validates required tools: EDirect & SRA Toolkit
+
+# Script Structure
+Each preflight script follows a consistent general structure:
+
 ```text
-utils/arrays.sh  → PREFLIGHT_ARRAY
+GUARDS
+SETUP
+SOURCE
+CHECKS
+MAIN
 ```
 
-`preflight/preflight.sh` sources and executes each script listed in `PREFLIGHT_ARRAY` sequentially, terminating immediately on failure.
+- `GUARDS` validate required inputs for the script
+- `SOURCE` imports required definitions
+- `CHECKS` validate consumed variables or arrays
+- `MAIN` performs validation or environment construction
 
-Current preflight order:
+# Tool Integration Model
+Tools are handled using a consistent three-layer approach:
 
-```text
-preflight_variables.sh
-preflight_commands.sh
-preflight_scripts.sh
-preflight_edirect.sh
-preflight_sratoolkit.sh
-```
+- `utils_<tool>.sh`
+→ defines parameters (URLs, paths)
 
-## `preflight_variables.sh`
-Validates core user‑defined configuration variables.
+- `functions_<tool>.sh`
+→ implements atomic logic (download, extract)
 
-### Responsibilities
-Confirms all required configuration variables are:
-- Defined in `config.sh`
-- Non‑empty
+- `preflight_<tool>.sh`
+→ performs validation and installation
 
-Variables validated here include:
-- `BIOPROJECT`
-- `TMUX_SESSION_NAME`
+This ensures:
+- separation of concerns
+- reproducible installations
+- consistent validation across tools
 
-This script ensures that the pipeline has sufficient user input to perform accession discovery and data acquisition.
+# Environment Construction
+The preflight layer builds the runtime environment by:
+- creating required directories
+- installing missing tools
+- resolving tool installation paths
+- writing environment files to `env/`
 
-## `preflight_scripts.sh`
-Validates pipeline module integrity.
+These `.env` files capture tool locations, ensuring consistent usage across sessions.
 
-### Responsibilities
-- Confirms all expected module scripts exist in `modules/`
-- Verifies that each module script is non‑empty
-- Ensures each module script is executable (setting permissions if required)
-- Confirms presence and integrity of `modules/pipeline.sh`
+# Execution Relationships
+Each preflight script is responsible for a specific contract:
 
-This prevents execution of incomplete, corrupted, or non‑executable module code.
+| Script | Responsibility |
+|--------|----------------|
+| `preflight.sh` | Orchestrates execution of all preflight checks |
+| `preflight_paths.sh` | Defines and creates required directories |
+| `preflight_variables.sh` | Validates user configuration variables |
+| `preflight_binaries.sh` | Validates required system binaries |
+| `preflight_pipeline.sh` | Validates pipeline scripts and orchestrator |
+| `preflight_edirect.sh` | Installs and validates EDirect |
+| `preflight_sratoolkit.sh` | Installs and validates SRA Toolkit |
 
-## `preflight_commands.sh`
-Validates required framework‑level external commands.
+# Key Rules
+- Do not include execution logic in preflight scripts
+- Do not defer validation to later stages
+- Always fail immediately on errors
+- Only validate variables that are used by the script
+- Maintain strict ordering via PREFLIGHT_ARRAY
+- Keep scripts minimal and focused
 
-### Responsibilities
-- Confirms availability of all non‑tool‑specific commands used by the pipeline
-- Uses strict `PATH`‑based validation via check_command
+# Summary
+The `preflight/` directory guarantees that the pipeline runs in an environment that is:
+- fully validated
+- reproducible
+- deterministic
 
-Commands validated here include:
-- Shell and filesystem utilities
-- Networking and archive tools
-- `tmux` session management commands
-
-Tool‑specific binaries (e.g. EDirect and SRA Toolkit executables) are intentionally excluded and handled by dedicated tool preflight scripts.
-
-## `preflight_edirect.sh`
-Validates and installs NCBI EDirect.
-
-### Responsibilities
-- Confirms the esearch executable is available and usable
-- Determines the EDirect installation directory
-- Installs EDirect if missing
-- Writes a reproducible environment file (`env/edirect.env`) exporting PATH updates
-
-Once this script completes successfully, downstream code may assume all required EDirect tools are available.
-
-## `preflight_sratoolkit.sh`
-Validates and installs the SRA Toolkit.
-
-### Responsibilities
-- Confirms a coherent SRA Toolkit installation is available
-- Verifies toolkit version compatibility
-- Downloads and installs the toolkit if missing or incorrect
-- Writes a reproducible environment file (`env/sratoolkit.env`)
-- Ensures prefetch and vdb-config are available for downstream use
-
-This script centralizes all SRA Toolkit invariants so that module scripts do not repeat validation logic.
-
-# Execution Model
-All preflight scripts are:
-- Executed on the login node
-- Sourced into the same shell for shared context
-- Terminated immediately on failure
-
-The pipeline does not proceed unless all applicable preflight scripts complete successfully.
-
-# Invariants Guaranteed After Preflight
-After preflight completes, downstream pipeline stages may assume:
-- Configuration variables are set and non‑empty
-- Required commands are available on `PATH`
-- EDirect is installed and usable
-- SRA Toolkit is installed, version‑correct, and usable
-- Tool environment files exist and can be safely sourced
-- Module scripts exist, contain data, and are executable
-
-This contract enforces a clean separation between validation and execution throughout the pipeline.
-
-# Notes
-- Preflight scripts are not intended to be run directly by end users
-- Tool installation performed during preflight is deterministic and restart‑safe
-- All validation logic is centralized; module scripts do not repeat checks
-- Any modification to configuration or pipeline code requires rerunning preflight
+By enforcing explicit contracts and fail-fast validation, it provides a clean boundary between setup and execution, ensuring that downstream pipeline stages can operate without ambiguity or hidden dependencies.

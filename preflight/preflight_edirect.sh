@@ -1,41 +1,70 @@
 #!/bin/bash
 set -euo pipefail
 
-######################### GUARDS ##########################
+######################### GUARDS #########################
 
-: "${UTILS_DIR:?UTILS_DIR not set (check PATHS section in run_pipeline.sh)}"
-: "${ENV_DIR:?ENV_DIR not set (check PATHS section in run_pipeline.sh)}"
+GUARD_ARRAY=(
+    UTILS_DIR
+    FUNCTIONS_DIR
+    ENV_DIR
+)
+
+for var in "${GUARD_ARRAY[@]}"; do
+    variable_check_nonempty "${var}" || fail_message "Variable is empty or not defined: ${var}"
+done
 
 ######################### SETUP ##########################
 
 # Define script name
-SCRIPT_NAME=$(basename "${BASH_SOURCE[0]}" .sh)
+SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}" .sh)"
 # Define toolname
 TOOLNAME="edirect"
 
-######################### SOURCE ##########################
+######################### SOURCE #########################
 
-# Source tool-specific functions
-source "${UTILS_DIR}/functions_${TOOLNAME}.sh"
+source "${UTILS_DIR}/utils_${TOOLNAME}.sh"
+source "${FUNCTIONS_DIR}/functions_${TOOLNAME}.sh"
+source "${FUNCTIONS_DIR}/functions_pipeline.sh"
 
-######################### PATHS ###########################
+######################### CHECKS #########################
 
-# Define environment file path
-ENV_FILE="${ENV_DIR}/${TOOLNAME}.env"
+CHECK_ARRAY=(
+    EDIRECT_URL
+    EDIRECT_ENV
+)
 
-######################### MAIN ############################
+for var in "${CHECK_ARRAY[@]}"; do
+    variable_check_nonempty "${var}" || fail_message "Variable is empty or not defined: ${var}"
+done
 
-echo "  RUNNING ${SCRIPT_NAME} ..."
-echo "  Checking for ${TOOLNAME} install..."
+######################### MAIN ###########################
 
-# Check for edirect
-if ! check_edirect; then
-    install_edirect
+echo
+echo "RUNNING ${SCRIPT_NAME} ..."
+echo "  Checking for EDirect..."
+
+# Check for esearch availability
+if tool_check_subcommand esearch help && tool_check_runtime esearch; then
+    echo "  EDirect already available"
+else
+    echo "  EDirect not found, installing..."
+    download_edirect "${EDIRECT_URL}" || fail_message "EDirect installation failed"
+    tool_check_subcommand esearch help || fail_message "esearch command not found after install"
+    tool_check_runtime esearch || fail_message "esearch not functional after install"
+    echo "  EDirect installed"
 fi
 
-# Write environment file (EDIRECT_DIR exported from check_edirect)
-write_env "${EDIRECT_DIR}" "${ENV_FILE}"
+# Get esearch location
+ESEARCH_PATH="$(command -v esearch)" || fail_message "Unable to resolve esearch path"
+# Get EDirect directory path
+EDIRECT_DIR="$(cd "$(dirname "${ESEARCH_PATH}")" && pwd)"
+# Validate EDIRECT_DIR
+variable_check_nonempty EDIRECT_DIR || fail_message "Failed to derive EDirect directory"
 
-echo "  Environment file written: ${ENV_FILE}"
-echo "  Install confirmed: ${TOOLNAME}"
-echo "  ${SCRIPT_NAME} COMPLETE"
+echo "  EDirect confirmed"
+echo "  Writing EDirect .env file..."
+
+write_env "${EDIRECT_DIR}" "${EDIRECT_ENV}" || fail_message "Failed to write EDirect environment file"
+
+echo "  Environment file written: ${EDIRECT_ENV}"
+echo "${SCRIPT_NAME} COMPLETE"
