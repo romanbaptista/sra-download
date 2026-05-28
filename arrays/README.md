@@ -69,8 +69,8 @@ Example:
 
 ```bash
 PIPELINE_ARRAY=(
-    "1_edirect.sh"
-    "2_sratoolkit.sh"
+    "1-bioproject-srr.sh"
+    "2-srr-sra.sh"
 )
 ```
 

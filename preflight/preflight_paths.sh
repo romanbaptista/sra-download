@@ -33,8 +33,8 @@ echo "  Creating pipeline directories..."
 
 # Define pipeline-specific directories
 ENV_DIR="${ROOT_DIR}/env"
-EDIRECT_OUTDIR="${OUTPUT_DIR}/1_edirect"
-SRATOOLKIT_OUTDIR="${OUTPUT_DIR}/2_sratoolkit"
+EDIRECT_OUTDIR="${OUTPUT_DIR}/1-bioproject-srr"
+SRATOOLKIT_OUTDIR="${OUTPUT_DIR}/2-srr-sra"
 
 # Extend DIR_ARRAY (initialised in utils_paths.sh) with pipeline-specific directories
 DIR_ARRAY+=(

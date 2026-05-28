@@ -24,8 +24,7 @@ source "${FUNCTIONS_DIR}/functions_base.sh"
 
 ######################### INPUT ##########################
 
-SRATOOLKIT_INDIR="${OUTPUT_DIR}/1_edirect"
-ACCESSION_FILE="${SRATOOLKIT_INDIR}/biosample_srr_accessions.txt"
+ACCESSION_FILE="${OUTPUT_DIR}/1-bioproject-srr/biosample_srr_accessions.txt"
 
 ######################### CHECKS #########################
 

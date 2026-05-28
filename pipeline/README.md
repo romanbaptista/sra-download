@@ -6,8 +6,8 @@ The `pipeline/` directory contains the execution layer of the pipeline.
 | File | Responsibility |
 |------|----------------|
 | `pipeline.sh` | Orchestrates execution of pipeline modules |
-| `1_edirect.sh` | Discovers accessions from BioProject using EDirect |
-| `2_sratoolkit.sh` | Downloads `.sra` files using SRA Toolkit |
+| `1-bioproject-srr.sh` | Discovers accessions from BioProject using EDirect |
+| `2-srr-sra.sh` | Downloads `.sra` files using SRA Toolkit |
 
 These scripts implement the data processing workflow, operating on a fully validated environment created by the preflight layer.
 
@@ -17,6 +17,25 @@ All execution in this directory assumes that:
 - all directories are correctly initialised
 
 No validation or setup logic is duplicated here.
+
+# Module Naming Convention
+Module scripts follow the pattern:
+```text
+<stage>_<input>-<output>.sh
+```
+
+This reflects the transformation performed at each stage of the pipeline.
+
+Examples:
+```text
+- 1_bioproject-srr.sh   → resolves BioProject → SRR accessions
+- 2_srr-sra.sh          → downloads SRR → .sra files
+```
+
+This convention provides:
+- clear indication of data flow
+- consistent naming across pipelines
+- improved readability in logs and outputs
 
 # Design Contract
 All scripts in this directory adhere to the following principles:
@@ -45,8 +64,8 @@ Modules are executed sequentially based on the order defined in `PIPELINE_ARRAY`
 Example:
 ```text
 pipeline.sh
-1_edirect.sh
-2_sratoolkit.sh
+1-bioproject-srr.sh
+2-srr-sra.sh
 ```
 
 The execution model is:
@@ -89,7 +108,7 @@ Modules are:
 - stateless beyond defined inputs/outputs
 - restart-safe where possible
 
-## `1_edirect.sh`
+## `1-bioproject-srr.sh`
 
 ### Role
 Discovers BioSample and SRA run accessions associated with a BioProject.
@@ -110,7 +129,7 @@ EDirect command-line tools (validated during preflight)
 
 ### Outputs
 ```text
-output/1_edirect/
+output/1-bioproject-srr/
 ├── biosample_uids.txt
 ├── biosample_docsum.xml
 ├── biosample_samn_accessions.txt
@@ -123,21 +142,21 @@ output/1_edirect/
 - output files are overwritten per run
 - relies only on preflight-validated tool availability
 
-## `2_sratoolkit.sh`
+## `2-srr-sra.sh`
 
 ### Role
 Downloads `.sra` files corresponding to SRR accessions.
 
 ### Inputs
 ```text
-SRR accession list from 1_edirect.sh
+SRR accession list from 1-bioproject-srr.sh
 SRA Toolkit (prefetch, vdb-config)
 network access
 ```
 
 ### Expected Input Structure
 ```text
-output/1_edirect/
+output/1-bioproject-srr/
 └── biosample_srr_accessions.txt
 ```
 
@@ -152,7 +171,7 @@ output/1_edirect/
 
 ### Outputs
 ```text
-output/2_sratoolkit/
+output/2-srr-sra/
 └── SRRXXXXXXXX/
     ├── SRRXXXXXXXX.sra
     └── .vdb-config

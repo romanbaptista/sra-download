@@ -57,8 +57,8 @@ sra-download/
 │
 ├── pipeline/                  # Execution layer
 │   ├── pipeline.sh
-│   ├── 1_edirect.sh
-│   └── 2_sratoolkit.sh
+│   ├── 1-bioproject-srr.sh
+│   └── 2-srr-sra.sh
 │
 ├── output/                    # Pipeline-generated data (created at runtime)
 ├── logs/                      # Centralised execution logs
@@ -80,7 +80,7 @@ At a high level, the pipeline proceeds as follows:
 ## Accession discovery
 - Queries the configured BioProject using EDirect
 - Retrieves associated BioSample and SRA run accessions (SRR IDs)
-- Writes accession lists to `output/1_edirect/`
+- Writes accession lists to `output/1-bioproject-srr`
 
 ## Data acquisition
 - Iterates through SRR accessions
@@ -131,12 +131,12 @@ All outputs are written to `output/`, grouped by pipeline stage.
 Example structure:
 ```text
 output/
-├── 1_edirect/
+├── 1-bioproject-srr.sh.sh/
 │   ├── biosample_uids.txt
 │   ├── biosample_docsum.xml
 │   ├── biosample_samn_accessions.txt
 │   └── biosample_srr_accessions.txt
-└── 2_sratoolkit/
+└── 2-srr-sra/
     └── SRRXXXXXXXX/
         └── SRRXXXXXXXX.sra
 ```
