@@ -23,7 +23,8 @@ source "${ARRAY_DIR}/array_pipeline.sh"
 
 ######################### CHECKS #########################
 
-array_check_nonempty PIPELINE_ARRAY || fail_message "PIPELINE_ARRAY is empty or not defined"
+variable_check_nonempty PIPELINE_ARRAY || fail_message "PIPELINE_ARRAY is empty or is not set"
+array_check_nonempty PIPELINE_ARRAY || fail_message "PIPELINE_ARRAY has no elements"
 
 ######################### MAIN ###########################
 

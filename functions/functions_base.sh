@@ -7,7 +7,7 @@ arg_check_nonempty() {
     local arg="${1-}"
 
     if [[ -z "${arg//[[:space:]]/}" ]]; then
-        echo "  ${FUNCNAME[1]}: required argument missing"
+        echo "  ${FUNCNAME[1]}: required argument missing" >&2
         return 2
     fi
 }
@@ -47,6 +47,7 @@ directory_check_exists() {
 }
 
 # directory_check_filetype
+# ext must include wildcard (e.g. "*.sra")
 directory_check_filetype() {
     local path="${1-}"
     local ext="${2-}"
@@ -148,13 +149,7 @@ tool_check_binary() {
     local tool="${1-}"
 
     # VALIDATION
-    local arg_array=(
-        "${tool}"
-    )
-
-    for arg in "${arg_array[@]}"; do
-        arg_check_nonempty "${arg}" || return $?
-    done
+    arg_check_nonempty "${tool}" || return $?
 
     # FUNCTION
     command -v "${tool}" >/dev/null 2>&1

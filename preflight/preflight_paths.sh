@@ -5,6 +5,7 @@
 GUARD_ARRAY=(
     ROOT_DIR
     UTILS_DIR
+    OUTPUT_DIR
 )
 
 for var in "${GUARD_ARRAY[@]}"; do
@@ -23,7 +24,8 @@ source "${UTILS_DIR}/utils_paths.sh"
 
 ######################### CHECKS #########################
 
-array_check_nonempty DIR_ARRAY || fail_message "DIR_ARRAY is empty or not defined"
+variable_check_nonempty DIR_ARRAY || fail_message "DIR_ARRAY is empty or is not set"
+array_check_nonempty DIR_ARRAY || fail_message "DIR_ARRAY has no elements"
 
 ######################### MAIN ###########################
 

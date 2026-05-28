@@ -46,7 +46,7 @@ echo
 echo "RUNNING ${SCRIPT_NAME} ..."
 echo "  Checking for SRA Toolkit..."
 
-# Check prefetch availability
+# Check required functionality
 if tool_check_binary prefetch; then
     tool_check_runtime prefetch || fail_message "prefetch found but not functional"
     tool_check_subcommand prefetch help || fail_message "prefetch help not functional"
@@ -62,7 +62,7 @@ else
     echo "  SRA Toolkit installed"
 fi
 
-# Get prefetch location
+# Get binary location
 PREFETCH_PATH="$(command -v prefetch)" || fail_message "Unable to resolve prefetch path"
 # Get toolkit directory
 SRA_DIR="$(cd "$(dirname "${PREFETCH_PATH}")/.." && pwd)"

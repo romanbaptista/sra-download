@@ -24,7 +24,8 @@ source "${ARRAY_DIR}/array_preflight.sh"
 
 ######################### CHECKS #########################
 
-array_check_nonempty PREFLIGHT_ARRAY || fail_message "PREFLIGHT_ARRAY is empty or not defined"
+variable_check_nonempty PREFLIGHT_ARRAY || fail_message "PREFLIGHT_ARRAY is empty or is not set"
+array_check_nonempty PREFLIGHT_ARRAY || fail_message "PREFLIGHT_ARRAY has no elements"
 
 ######################### MAIN ###########################
 

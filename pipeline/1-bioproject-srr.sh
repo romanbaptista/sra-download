@@ -18,16 +18,17 @@ done
 # Define script name
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}" .sh)"
 
-######################### SOURCE #########################
-
-source "${FUNCTIONS_DIR}/functions_base.sh"
-
 ######################### OUTPUT #########################
 
+# Define output files
 UID_FILE="${EDIRECT_OUTDIR}/biosample_uids.txt"
 METADATA_FILE="${EDIRECT_OUTDIR}/biosample_docsum.xml"
 SAMN_FILE="${EDIRECT_OUTDIR}/biosample_samn_accessions.txt"
 SRR_FILE="${EDIRECT_OUTDIR}/biosample_srr_accessions.txt"
+
+######################### SOURCE #########################
+
+source "${FUNCTIONS_DIR}/functions_base.sh"
 
 ######################### MAIN ###########################
 

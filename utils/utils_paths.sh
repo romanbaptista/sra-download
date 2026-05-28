@@ -17,6 +17,7 @@ UTILS_DIR="${ROOT_DIR}/utils"
 OUTPUT_DIR="${ROOT_DIR}/output"
 
 # Define directory array
+# Only pipeline-owned writable directories belong in DIR_ARRAY
 DIR_ARRAY=(
     OUTPUT_DIR
 )

@@ -22,7 +22,8 @@ source "${ARRAY_DIR}/array_variables.sh"
 
 ######################### CHECKS #########################
 
-array_check_nonempty VARIABLE_ARRAY || fail_message "VARIABLE_ARRAY is empty or not defined"
+variable_check_nonempty VARIABLE_ARRAY || fail_message "VARIABLE_ARRAY is empty or is not set"
+array_check_nonempty VARIABLE_ARRAY || fail_message "VARIABLE_ARRAY has no elements"
 
 ######################### MAIN ###########################
 

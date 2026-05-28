@@ -12,6 +12,6 @@ write_env() {
 
     cat > "${env_file}" <<EOF
 export TOOL_DIR="${install_dir}"
-export PATH="\${TOOL_DIR}:\${PATH}"
+export PATH="\${TOOL_DIR}/bin:\${PATH}"
 EOF
 }

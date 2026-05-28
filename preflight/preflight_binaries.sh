@@ -22,7 +22,8 @@ source "${ARRAY_DIR}/array_binaries.sh"
 
 ######################### CHECKS #########################
 
-array_check_nonempty BINARY_ARRAY || fail_message "BINARY_ARRAY is empty or not defined"
+variable_check_nonempty BINARY_ARRAY || fail_message "BINARY_ARRAY is empty or is not set"
+array_check_nonempty BINARY_ARRAY || fail_message "BINARY_ARRAY has no elements"
 
 ######################### MAIN ###########################
 
