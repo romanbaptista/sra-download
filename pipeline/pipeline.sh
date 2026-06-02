@@ -11,7 +11,7 @@ GUARD_ARRAY=(
 )
 
 for var in "${GUARD_ARRAY[@]}"; do
-    variable_check_nonempty "${var}" || fail_message "Variable is empty or not defined: ${var}"
+    : "${!var:?${var} not set or empty}"
 done
 
 ######################### SETUP ###########################
