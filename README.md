@@ -1,188 +1,155 @@
 # `sra-download`
 
 # Overview
+This repository implements a contract-driven HPC pipeline for deterministic, large-scale download of sequencing data from NCBI using SRA accessions derived from a BioProject.
 
-This repository contains the `sra-download` pipeline — a modular, HPC‑compatible workflow for:
+The pipeline takes a BioProject identifier as input, resolves associated BioSample and SRA run (SRR) accessions, and performs reproducible, restart-safe SRA file downloads. It is designed for execution on SLURM-based HPC systems with strict validation, explicit environment reconstruction, and no reliance on implicit runtime state.
 
-> Querying sequencing runs from an NCBI BioProject and downloading the corresponding `.sra` files in a robust, restart‑safe manner.
+The framework enforces a clear separation between configuration, validation, environment construction, and execution, enabling reproducible behaviour across compute environments.
 
-The pipeline is designed for execution on HPC login nodes and provides:
-- Reliable querying of NCBI metadata (BioProject → BioSample → SRA run accessions)
-- Deterministic downloading of `.sra` files using a pinned SRA Toolkit version
-- Safe execution inside a persistent tmux session to survive disconnections
-- A fully validated execution environment before any network activity occurs
-
-Internally, the pipeline follows a contract‑driven architecture, separating:
-- configuration
-- validation
-- execution
-
-to ensure reproducibility, portability, and fail‑fast behaviour.
-
-All outputs are written to a dedicated `output/` directory, allowing seamless integration with downstream workflows such as conversion, quality control, or alignment pipelines.
-
-# Repository Structure
-
+# Execution Flow
 ```text
-sra-download/
-├── README.md                  # Top-level overview (this file)
-├── config.sh                  # User configuration (BioProject)
-├── sra-download.sh            # Entry point (logging + preflight + tmux execution)
-│
-├── arrays/                    # Declarative pipeline contracts
-│   ├── array_preflight.sh
-│   ├── array_pipeline.sh
-│   ├── array_variables.sh
-│   └── array_binaries.sh
-│
-├── utils/                     # Static variable definitions (no logic)
-│   ├── utils_paths.sh
-│   ├── utils_edirect.sh
-│   └── utils_sratoolkit.sh
-│
-├── functions/                 # Reusable helper functions
-│   ├── functions_base.sh
-│   ├── functions_pipeline.sh
-│   ├── functions_edirect.sh
-│   └── functions_sratoolkit.sh
-│
-├── preflight/                 # Validation and environment setup
-│   ├── preflight.sh
-│   ├── preflight_paths.sh
-│   ├── preflight_variables.sh
-│   ├── preflight_binaries.sh
-│   ├── preflight_pipeline.sh
-│   ├── preflight_edirect.sh
-│   └── preflight_sratoolkit.sh
-│
-├── pipeline/                  # Execution layer
-│   ├── pipeline.sh
-│   ├── 1-bioproject-srr.sh
-│   └── 2-srr-sra.sh
-│
-├── output/                    # Pipeline-generated data (created at runtime)
-├── logs/                      # Centralised execution logs
-└── env/                       # Tool environment files
+sra-download.sh
+→ sra-download-run.sh
+→ preflight (validation + tool setup + environment creation)
+→ pipeline.sh (SLURM submission)
+→ modules (execution only)
 ```
 
-# Workflow
-At a high level, the pipeline proceeds as follows:
+# Stage descriptions
 
-## Preflight validation
-- Verifies all required system commands are available
-- Confirms required user configuration variables are set
-- Validates pipeline scripts exist and are executable
-- Checks for and installs:
-  - NCBI EDirect
-  - SRA Toolkit (pinned version)
-- Writes reproducible environment files for downstream use
+1. **Entry (`sra-download.sh`)**  
+  Starts a clean tmux session and launches the pipeline runner.
 
-## Accession discovery
-- Queries the configured BioProject using EDirect
-- Retrieves associated BioSample and SRA run accessions (SRR IDs)
-- Writes accession lists to `output/1-bioproject-srr`
+2. **Runner (`sra-download-run.sh`)**  
+  Loads configuration, validates environment paths, executes preflight, and submits the pipeline orchestrator.
 
-## Data acquisition
-- Iterates through SRR accessions
-- Downloads `.sra` files using prefetch
-- Isolates each accession into its own directory
-- Applies per‑accession configuration to avoid shared state
-- Safely skips already-downloaded accessions
+3. **Preflight (`dev/preflight/`)**  
+  Performs strict validation and setup:
+    - validates user configuration
+    - validates system dependencies
+    - installs tools if required
+    - constructs deterministic `.env` runtime environments
 
-## Execution environment
-- The pipeline runs inside a `tmux` session
-- Any existing session is reset to ensure a clean run
-- Required variables are explicitly passed into the session
+4. **Pipeline (`dev/pipeline/pipeline.sh`)**  
+  Executes within SLURM and orchestrates module execution using a validated runtime ABI.
 
-# Configuration
-All user‑defined parameters are located in `config.sh`
+5. **Modules (`dev/pipeline/*.sh`)**  
+  Perform execution-only tasks:
+    - `1-bioproject-srr.sh` → resolves BioProject → SRR accessions
+    - `2-srr-sra.sh` → downloads `.sra` files per accession
 
-At minimum, the pipeline requires a BioProject ID:
+# Core Design Principles
+- **Install-time complexity, runtime simplicity**  
+  All installation and environment construction occurs during preflight.
 
-```bash
-BIOPROJECT="PRJNAXXXXXX"
-```
+- **No hidden environment state**  
+  Every execution step reconstructs its environment explicitly.
 
-# Usage
-From the pipeline root directory:
-```bash
-bash sra-download.sh
-```
+- **No conda activation at runtime**  
+  Tools are executed via projected binaries and `.env` files.
 
-This will:
-- Run full preflight validation
-- Launch a new `tmux` session
-- Execute the pipeline in a clean, reproducible environment
+- **Binary projection + `PATH` injection**  
+  Only required binaries are exposed via controlled `PATH` modification..
 
-To monitor execution:
+- **Explicit contracts at every layer**  
+  Each script declares and validates its required inputs and structure before execution.
 
-```bash
-tmux attach -t sra-download
-```
-
-To detach without stopping:
+# Tool Model
+All tools are resolved to deterministic locations:
 ```text
-Ctrl + b, then d
+installs/<tool>/bin/<binary>
+envs/<tool>.env
 ```
+
+Runtime execution uses:
+```text
+source envs/<tool>.env
+```
+
+This ensures:
+- consistent tool resolution across environments
+- no dependency on system PATH
+- reproducible execution across HPC systems
+
+# Inputs
+
+`BIOPROJECT`
+- NCBI BioProject accession ID provided in `config.sh`
 
 # Outputs
-All outputs are written to `output/`, grouped by pipeline stage.
-
-Example structure:
+Outputs are written to:
 ```text
 output/
-├── 1-bioproject-srr.sh.sh/
+├── 1-bioproject-srr/
 │   ├── biosample_uids.txt
 │   ├── biosample_docsum.xml
 │   ├── biosample_samn_accessions.txt
 │   └── biosample_srr_accessions.txt
-└── 2-srr-sra/
-    └── SRRXXXXXXXX/
-        └── SRRXXXXXXXX.sra
+│
+├── 2-srr-sra/
+│   └── <SRR>/
+│       ├── <SRR>.sra
+│       └── .vdb-config
 ```
 
-Each accession is stored in its own directory, allowing safe restarts and partial re‑runs.
+Key properties:
+- deterministic directory structure
+- per-accession isolation
+- restart-safe execution (existing files are skipped)
 
-# Architecture Summary
+# Repository Structure
+```text
+dev/
+  arrays/      # contract-defined arrays (pipeline, preflight, exports, etc.)
+  contracts/   # script-specific contract definitions
+  preflight/   # validation + setup layer
+  pipeline/    # execution modules and orchestrator
+  utils/       # variable definitions and helpers
+  functions/   # reusable validation and tool logic
+  installs/    # tool binaries (installed during preflight)
+  envs/        # runtime environment definitions
 
-| Layer | Responsibility |
-|------|----------------|
-| `config.sh` | User configuration |
-| `arrays/` | Declarative pipeline contracts |
-| `utils/` | Variable definitions |
-| `functions/` | Reusable helper logic |
-| `preflight/` | Validation and environment setup |
-| `pipeline/` | Execution orchestration |
-| `modules` | Execution-only tasks |
+logs/
+output/
+```
 
-# Further Documentation
-For detailed documentation on individual components, see:
-- `arrays/README.md` — contract layer and pipeline ABI
-- `preflight/README.md` — validation design and responsibilities
-- `pipeline/README.md` — execution model and modules
-- `utils/README.md` — variable definitions
-- `functions/README.md` — helper functions and abstractions
+# Usage
+
+Set:
+```bash
+BIOPROJECT="PRJXXXXXXX"
+```
+
+Run pipeline:
+```bash
+bash sra-download.sh
+```
+
+Monitor execution:
+```bash
+tmux attach -t sra-download
+```
+
+# Reproducibility
+This pipeline guarantees:
+- deterministic execution order
+- strict validation before execution
+- explicit environment reconstruction at every boundary
+- no reliance on inherited state or system configuration
+
+All outputs can be reproduced given:
+- the same input configuration
+- the same pipeline version
+- access to the same upstream data sources
+
+# Summary
+This pipeline provides a minimal, robust, and fully reproducible solution for BioProject-based SRA data acquisition, built on a contract-driven architecture that ensures correctness, portability, and scalability across HPC environments.
 
 # Citation
-If you use this pipeline in published work, please cite:
-
-> Baptista, R. _sra-download: A reproducible HPC pipeline for BioProject-scale SRA data acquisition_. GitHub repository: https://github.com/romanbaptista/sra
-
-Optionally include the commit hash or release version used.
-
-# Why SRA Toolkit 2.10.9?
-Many HPC systems provide an older SRA Toolkit module such as `sra-tools-2.10.3.tcl`, available on the RVC cluster. 
-
-While functional, these older builds often suffer from:
-- Outdated HTTPS handling (leading to prefetch failures)
-- Incomplete or unstable fasterq-dump behaviour
-- Bugs in VDB configuration handling
-- Reduced compatibility with newer SRA accessions
-
-Version 2.10.9 includes important improvements:
-- More reliable HTTPS downloads via prefetch
-- Improved stability and performance
-- Better handling of per-directory configurations
-- Reduced failure rates in large-scale runs
-
-For these reasons, the pipeline installs and uses a local copy of SRA Toolkit 2.10.9 by default, ensuring consistent and reproducible behaviour across different HPC environments.
+If you use this pipeline in your work, please cite it as:
+```text
+Baptista, R. (2026).
+sra-download: A contract-driven HPC pipeline for deterministic retrieval of SRA data from NCBI BioProjects.
+GitHub repository. https://github.com/<username>/sra-download
+```

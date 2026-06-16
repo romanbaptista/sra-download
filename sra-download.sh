@@ -1,99 +1,52 @@
 #!/bin/bash
 set -euo pipefail
 
-######################### SETUP ###########################
+######################## SETUP ###########################
 
-# Define pipeline root
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Define pipeline name
-PIPELINE_NAME="$(basename "${ROOT_DIR}")"
-# Define script name
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}" .sh)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-######################### SOURCE ##########################
+######################## LOGS ############################
 
-source "${ROOT_DIR}/config.sh"                                  # User configuration
-source "${ROOT_DIR}/functions/functions_base.sh"                # Base pipeline functions
-
-######################### LOGS ############################
-
-# Define log directory
-LOG_DIR="${ROOT_DIR}/logs"
-# Make log directory
-mkdir -p "${LOG_DIR}"
-# Define log file for this script
-LOG_FILE="${LOG_DIR}/${SCRIPT_NAME}.log"
-# Redirect stdout/stderr to terminal and log file
+LOG_FILE="${ROOT_DIR}/logs/${SCRIPT_NAME}.log"
 exec > >(tee -a "${LOG_FILE}") 2>&1
 
-######################### PREFLIGHT #######################
+echo
+echo "STARTING SCRIPT: ${SCRIPT_NAME}.sh"
+echo "----------------------"
+
+######################### MAIN ###########################
+
+echo "SECTION - MAIN"
 
 echo
-echo "PREFLIGHT for ${PIPELINE_NAME} ..."
-
-# Run preflight.sh orchestrator
-source "${ROOT_DIR}/preflight/preflight.sh"
-
-echo
-echo "PREFLIGHT for ${PIPELINE_NAME} COMPLETE"
-
-######################### TMUX ############################
-
-# Define tmux session name
-TMUX_SESSION_NAME="sra-download"
-
-# Define TMUX variables
-TMUX_ARRAY=(
-    ROOT_DIR
-    ARRAY_DIR
-    FUNCTIONS_DIR
-    PIPELINE_DIR
-    PREFLIGHT_DIR
-    UTILS_DIR
-    LOG_DIR
-)
-
-# Initialise TMUX_EXPORTS
-TMUX_EXPORTS=""
-
-# Validate all variables
-for var in "${TMUX_ARRAY[@]}"; do
-    variable_check_nonempty "${var}" || fail_message "TMUX export variable not set: ${var}"
-    TMUX_EXPORTS+="${var}='${!var}' "
-done
-
-######################### MAIN ############################
+echo "Checking for tool: tmux"
+if ! command -v tmux >/dev/null 2>&1; then
+    echo "ERROR: tmux is not installed or not in PATH"
+    exit 1
+fi
+echo "Tool confirmed: tmux"
 
 echo
-echo "RUNNING ${SCRIPT_NAME} ..."
-
-echo
-echo "  User configuration:"
-echo "      BioProject:         ${BIOPROJECT}"
-
-# tmux session
-if tmux has-session -t "${TMUX_SESSION_NAME}" 2>/dev/null; then
-    echo "  Existing tmux session detected: ${TMUX_SESSION_NAME}"
-    echo "  Terminating existing session..."
-    tmux kill-session -t "${TMUX_SESSION_NAME}"
-    sleep 1
-    echo "  Session terminated"
+echo "Checking for existing tmux session: ${SCRIPT_NAME}"
+if tmux has-session -t "${SCRIPT_NAME}" 2>/dev/null; then
+    echo "Existing session found: ${SCRIPT_NAME}"
+    echo "Killing session: ${SCRIPT_NAME}"
+    tmux kill-session -t "${SCRIPT_NAME}"
+    echo "Session killed: ${SCRIPT_NAME}"
+else
+    echo "No existing session found"
 fi
 
-echo "  Creating new tmux session..."
-echo "  Submitting pipeline.sh to tmux session..."
-
-tmux new-session -d -s "${TMUX_SESSION_NAME}" "${TMUX_EXPORTS} bash \"${PIPELINE_DIR}/pipeline.sh\""
-
-echo "  pipeline.sh submitted to tmux session: ${TMUX_SESSION_NAME}"
 echo
-echo "  To monitor progress, use:"
-echo "  'tmux attach -t ${TMUX_SESSION_NAME}'"
-echo
-echo "  To detach again, without stopping jobs:"
-echo "  Press Ctrl+b then d"
-echo
-echo "  To kill session, use:"
-echo "  'tmux kill-session -t ${TMUX_SESSION_NAME}'"
+echo "Launching new tmux session: ${SCRIPT_NAME}"
+tmux new-session -d -s "${SCRIPT_NAME}" "cd ${ROOT_DIR} && bash ${SCRIPT_NAME}-run.sh"
+echo "Session launched: ${SCRIPT_NAME}"
+echo "Pipeline started inside session: ${SCRIPT_NAME}"
+echo "- Attach with: tmux attach -t ${SCRIPT_NAME}"
+echo "- Detach with: Ctrl + B then D"
 
-echo "${SCRIPT_NAME} COMPLETE"
+echo
+echo "MAIN COMPLETE"
+echo "----------------------"
+echo "SUCCESS - SCRIPT COMPLETE: ${SCRIPT_NAME}.sh"
