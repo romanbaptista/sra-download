@@ -74,7 +74,7 @@ This ensures:
 
 # Inputs
 
-`BIOPROJECT`
+### `BIOPROJECT`
 - NCBI BioProject accession ID provided in `config.sh`
 
 # Outputs
@@ -148,8 +148,7 @@ This pipeline provides a minimal, robust, and fully reproducible solution for Bi
 
 # Citation
 If you use this pipeline in your work, please cite it as:
-```text
-Baptista, R. (2026).
-sra-download: A contract-driven HPC pipeline for deterministic retrieval of SRA data from NCBI BioProjects.
-GitHub repository. https://github.com/<username>/sra-download
-```
+
+> Baptista, R. (2026).
+_sra-download: A contract-driven HPC pipeline for deterministic retrieval of SRA data from NCBI BioProjects._
+Available at: https://github.com/romanbaptista/sra-download
