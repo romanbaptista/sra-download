@@ -35,11 +35,11 @@ This workflow ensures that tools are:
 
 | Step             | Role                                      |
 |------------------|-------------------------------------------|
-| check_<tool>()   | verifies tool availability                |
-| install_<tool>() | installs tool if missing                  |
-| write .env file  | generates deterministic environment file  |
+| `check_<tool>()`   | verifies tool availability                |
+| `install_<tool>()` | installs tool if missing                  |
+| write `.env` file  | generates deterministic environment file  |
 | source           | validates environment usability           |
-| tool_check_array | verifies tool functionality               |
+| `tool_check_array` | verifies tool functionality               |
 
 # Environment Files
 Environment files define the runtime interface for tools and are created during preflight.

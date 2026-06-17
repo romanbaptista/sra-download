@@ -146,6 +146,23 @@ All outputs can be reproduced given:
 # Summary
 This pipeline provides a minimal, robust, and fully reproducible solution for BioProject-based SRA data acquisition, built on a contract-driven architecture that ensures correctness, portability, and scalability across HPC environments.
 
+# Why SRA Toolkit 2.10.9?
+Many HPC systems provide an older SRA Toolkit module such as `sra-tools-2.10.3.tcl`.
+
+While functional, these older builds often suffer from:
+- Outdated HTTPS handling
+- Unstable or inconsistent fasterq-dump behaviour
+- Bugs in VDB configuration handling
+- Reduced compatibility with newer SRA accessions
+
+Version 2.10.9 includes important improvements:
+- Improved stability and performance of fasterq-dump
+- More reliable handling of large-scale conversions
+- Better support for parallel HPC execution
+- Reduced failure rates across batch workloads
+
+For these reasons, the pipeline installs and uses a local copy of SRA Toolkit 2.10.9 by default, ensuring consistent and reproducible behaviour across different HPC environments.
+
 # Citation
 If you use this pipeline in your work, please cite it as:
 
